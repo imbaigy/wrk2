@@ -77,8 +77,13 @@ static void usage() {
 int main(int argc, char **argv) {
     char *url, **headers = zmalloc(argc * sizeof(char *));
     struct http_parser_url parts = {};
+    int rc = parse_args(&cfg, &url, &parts, headers, argc, argv);
 
-    if (parse_args(&cfg, &url, &parts, headers, argc, argv)) {
+    if (rc > 0) {
+        exit(0);
+    }
+
+    if (rc < 0) {
         usage();
         exit(1);
     }
@@ -718,7 +723,8 @@ static struct option longopts[] = {
 };
 
 static int parse_args(struct config *cfg, char **url, struct http_parser_url *parts, char **headers, int argc, char **argv) {
-    char c, **header = headers;
+    int c;
+    char **header = headers;
 
     memset(cfg, 0, sizeof(struct config));
     cfg->threads     = 2;
@@ -765,8 +771,9 @@ static int parse_args(struct config *cfg, char **url, struct http_parser_url *pa
             case 'v':
                 printf("wrk %s [%s] ", VERSION, aeGetApiName());
                 printf("Copyright (C) 2012 Will Glozer\n");
-                break;
+                return 1;
             case 'h':
+                return -1;
             case '?':
             case ':':
             default:
