@@ -19,7 +19,7 @@ else ifeq ($(TARGET), darwin)
 		CFLAGS += -I/usr/local/include -I/usr/local/opt/openssl/include
 	endif
 else ifeq ($(TARGET), linux)
-        CFLAGS  += -D_POSIX_C_SOURCE=200809L -D_BSD_SOURCE
+        CFLAGS  += -D_POSIX_C_SOURCE=200809L -D_DEFAULT_SOURCE
 	LIBS    += -ldl
 	LDFLAGS += -Wl,-E
 else ifeq ($(TARGET), freebsd)

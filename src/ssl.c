@@ -10,6 +10,7 @@
 
 static pthread_mutex_t *locks;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void ssl_lock(int mode, int n, const char *file, int line) {
     pthread_mutex_t *lock = &locks[n];
     if (mode & CRYPTO_LOCK) {
@@ -22,6 +23,7 @@ static void ssl_lock(int mode, int n, const char *file, int line) {
 static unsigned long ssl_id() {
     return (unsigned long) pthread_self();
 }
+#endif
 
 SSL_CTX *ssl_init() {
     SSL_CTX *ctx = NULL;
@@ -35,8 +37,10 @@ SSL_CTX *ssl_init() {
             pthread_mutex_init(&locks[i], NULL);
         }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         CRYPTO_set_locking_callback(ssl_lock);
         CRYPTO_set_id_callback(ssl_id);
+#endif
 
         if ((ctx = SSL_CTX_new(SSLv23_client_method()))) {
             SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL);
