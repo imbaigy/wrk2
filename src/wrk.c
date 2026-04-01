@@ -485,6 +485,7 @@ static int response_complete(http_parser *parser) {
     connection *c = parser->data;
     thread *thread = c->thread;
     uint64_t now = time_us();
+    uint64_t first_byte_latency = c->first_byte ? c->first_byte - c->start : 0;
     int status = parser->status_code;
 
     thread->complete++;
@@ -496,7 +497,7 @@ static int response_complete(http_parser *parser) {
 
     if (c->headers.buffer) {
         *c->headers.cursor++ = '\0';
-        script_response(thread->L, status, &c->headers, &c->body);
+        script_response(thread->L, status, &c->headers, &c->body, first_byte_latency);
         c->state = FIELD;
     }
 
@@ -614,6 +615,10 @@ static void socket_writeable(aeEventLoop *loop, int fd, void *data, int mask) {
 
     if (!c->written && cfg.dynamic) {
         script_request(thread->L, &c->request, &c->length);
+        c->start           = time_us();
+        c->first_byte      = 0;
+        c->first_byte_seen = false;
+        c->pending         = cfg.pipeline;
     }
 
     char  *buf = c->request + c->written;
@@ -659,6 +664,11 @@ static void socket_readable(aeEventLoop *loop, int fd, void *data, int mask) {
             case OK:    break;
             case ERROR: goto error;
             case RETRY: return;
+        }
+
+        if (!c->first_byte_seen && n > 0) {
+            c->first_byte_seen = true;
+            c->first_byte      = time_us();
         }
 
         if (http_parser_execute(&c->parser, &parser_settings, c->buf, n) != n) goto error;

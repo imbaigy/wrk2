@@ -83,6 +83,8 @@ typedef struct connection {
     uint64_t latest_expected_start;
     uint64_t latest_connect;
     uint64_t latest_write;
+    bool first_byte_seen;
+    uint64_t first_byte;
 } connection;
 
 #endif /* WRK_H */
